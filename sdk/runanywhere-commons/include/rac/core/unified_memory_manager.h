@@ -1,19 +1,3 @@
-/**
- * @file unified_memory_manager.h
- * @brief Unified Memory Manager for Voice AI Pipeline
- *
- * Provides a single pre-allocated memory pool that is partitioned into segments
- * for different inference engines (llama.cpp KV cache, ExecuTorch ASR/TTS buffers).
- * This eliminates runtime malloc/free during inference for optimal mobile performance.
- *
- * Memory Layout:
- * ┌──────────────────────────────────────────────────────────────────┐
- * │                        Total Pool                                │
- * ├─────────────────────┬─────────────────┬───────────────┬──────────┤
- * │  LLM KV Cache       │  ASR Buffer     │  TTS Buffer   │ Scratch  │
- * │  (llama.cpp)        │  (ExecuTorch)   │  (ExecuTorch) │ (shared) │
- * └─────────────────────┴─────────────────┴───────────────┴──────────┘
- */
 
 #ifndef RAC_CORE_UNIFIED_MEMORY_MANAGER_H
 #define RAC_CORE_UNIFIED_MEMORY_MANAGER_H
@@ -67,31 +51,7 @@ struct MemorySegment {
         return size - used.load(std::memory_order_acquire);
     }
 };
-/*
-// Unified Memory Manager
-//
-// Allocates a single contiguous memory pool at initialization and partitions
-// it into segments for each inference engine. 
- *
- * Usage:
- * @code
- *   UnifiedMemoryManager mgr;
- *   MemoryPoolConfig config;
- *   config.llm_kv_cache_size = 512 * 1024 * 1024;  // 512 MB
- *
- *   if (!mgr.initialize(config)) {
- *       // Handle allocation failure
- *   }
- *
- *   // Pass segments to backends
- *   llama_cpp_backend.set_kv_buffer(mgr.get_llm_segment());
- *   executorch_backend.set_asr_buffer(mgr.get_asr_segment());
- *   executorch_backend.set_tts_buffer(mgr.get_tts_segment());
- *
- *   // After each utterance, reset scratch and reusable segments
- *   mgr.reset_scratch();
- * @endcode
- */
+
 class UnifiedMemoryManager {
 public:
     UnifiedMemoryManager() = default;
@@ -103,26 +63,14 @@ public:
     UnifiedMemoryManager(UnifiedMemoryManager&&) = delete;
     UnifiedMemoryManager& operator=(UnifiedMemoryManager&&) = delete;
 
-    /**
-     * @brief Initialize the memory pool
-     * @param config Pool configuration
-     * @return true if allocation succeeded, false otherwise
-     *
-     * Allocates a single contiguous block and partitions into segments.
-     * Must be called before using any segment accessors.
-     */
+   //allocs a single continous block and partition into segments
     bool initialize(const MemoryPoolConfig& config = MemoryPoolConfig{});
 
-    /**
-     * @brief Check if memory pool is initialized
-     */
+    // Check if memory pool is initialized
     bool is_initialized() const { return pool_ != nullptr; }
 
-    /**
-     * @brief Release all memory
-     *
-     * After cleanup, the manager can be re-initialized with a new config.
-     */
+    // Release all memory
+    // After cleanup, the manager can be re-initialized with a new config.
     void cleanup();
 
     

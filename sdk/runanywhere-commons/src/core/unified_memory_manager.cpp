@@ -26,7 +26,11 @@ namespace core {
 // =============================================================================
 // MemorySegment Implementation
 // =============================================================================
+// args
+// bytes : number of bytes to be allocated
+// align : bytes it should be aligned with
 void* MemorySegment::allocate(size_t bytes, size_t align) {
+
     //sanity chekc
     if (!is_valid() || bytes == 0) {
         return nullptr;
@@ -46,24 +50,26 @@ void* MemorySegment::allocate(size_t bytes, size_t align) {
         
         //ensure that the memory is aligned to the required alignment 
         // using ~(align -1) -> basically ensures that its aligned to 
-        // 16 or 64 bytes
+        // 16 bytes
+        // so if lets say my base address ptr is pointing at
+        // 0x1000 -> this will work . Why ? cuz divisible by 16
+        // but 0x1018 won't work cuz not divisible by 16
+        // hence we need to find nearest aligned address 
         uintptr_t aligned_addr = (base_addr + align - 1) & ~(align - 1);
 
         aligned_offset = aligned_addr - reinterpret_cast<uintptr_t>(base);
 
         new_used = aligned_offset + bytes;
 
-        // Check bounds
         if (new_used > size) {
             return nullptr;
         }
     } while (!used.compare_exchange_weak(
         current, new_used,
-        std::memory_order_release,
+        std::memory_order_release, // if current == new used : 
         std::memory_order_relaxed
     ));
 
-    //return the shifted aligned pointer
     return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(base) + aligned_offset);
 }
 
@@ -78,13 +84,11 @@ UnifiedMemoryManager::~UnifiedMemoryManager() {
 bool UnifiedMemoryManager::initialize(const MemoryPoolConfig& config) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    // Already initialized?
     if (pool_ != nullptr) {
         LOGE("Memory pool already initialized. Call cleanup() first.\n");
         return false;
     }
 
-    // Validate configuration
     if (config.total_size() == 0) {
         LOGE("Invalid configuration: total size is 0\n");
         return false;

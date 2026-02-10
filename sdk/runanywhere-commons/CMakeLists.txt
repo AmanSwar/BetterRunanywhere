@@ -33,6 +33,7 @@ option(RAC_BUILD_BACKENDS "Build ML backends (LlamaCPP, ONNX, WhisperCPP)" OFF)
 option(RAC_BACKEND_LLAMACPP "Build LlamaCPP backend" ON)
 option(RAC_BACKEND_ONNX "Build ONNX backend" ON)
 option(RAC_BACKEND_WHISPERCPP "Build WhisperCPP backend" ON)
+option(RAC_BACKEND_EXECUTORCH "Build ExecuTorch backend (ASR/TTS)" OFF)
 
 # =============================================================================
 # C++ CONFIGURATION
@@ -136,6 +137,7 @@ set(RAC_CORE_SOURCES
     src/core/events.cpp
     src/core/sdk_state.cpp
     src/core/rac_structured_error.cpp
+    src/core/unified_memory_manager.cpp
     src/core/capabilities/lifecycle_manager.cpp
 )
 
@@ -185,6 +187,8 @@ set(RAC_FEATURES_SOURCES
     src/features/vad/vad_analytics.cpp
     # Voice Agent
     src/features/voice_agent/voice_agent.cpp
+    src/features/voice_agent/hybrid_voice_pipeline.cpp
+    src/features/voice_agent/rac_hybrid_voice_pipeline.cpp
     # Result memory management
     src/features/result_free.cpp
 )
@@ -290,6 +294,11 @@ if(RAC_BUILD_BACKENDS)
         message(STATUS "  - WhisperCPP backend")
         add_subdirectory(src/backends/whispercpp)
     endif()
+
+    if(RAC_BACKEND_EXECUTORCH AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/backends/executorch/CMakeLists.txt")
+        message(STATUS "  - ExecuTorch backend")
+        add_subdirectory(src/backends/executorch)
+    endif()
 endif()
 
 # =============================================================================
@@ -314,6 +323,28 @@ install(DIRECTORY include/
     DESTINATION include
     FILES_MATCHING PATTERN "*.h"
 )
+
+# =============================================================================
+# BENCHMARKS (Desktop only)
+# =============================================================================
+
+if(NOT ANDROID AND NOT IOS)
+    option(RAC_BUILD_BENCHMARKS "Build benchmark executables" ON)
+    
+    if(RAC_BUILD_BENCHMARKS)
+        # Real backend benchmark
+        add_executable(benchmark_real_backends
+            benchmarks/benchmark_real_backends.cpp
+        )
+        target_link_libraries(benchmark_real_backends PRIVATE rac_commons)
+        target_include_directories(benchmark_real_backends PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+        )
+        
+        message(STATUS "Benchmarks:     ON")
+    endif()
+endif()
+
 
 # =============================================================================
 # CONFIGURATION SUMMARY
@@ -341,5 +372,7 @@ if(RAC_BUILD_BACKENDS)
 endif()
 message(STATUS "")
 message(STATUS "JNI bridge:     ${RAC_BUILD_JNI}")
+message(STATUS "Tests:          ${RAC_BUILD_TESTS}")
 message(STATUS "====================================")
 message(STATUS "")
+
