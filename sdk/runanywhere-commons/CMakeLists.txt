@@ -33,7 +33,6 @@ option(RAC_BUILD_BACKENDS "Build ML backends (LlamaCPP, ONNX, WhisperCPP)" OFF)
 option(RAC_BACKEND_LLAMACPP "Build LlamaCPP backend" ON)
 option(RAC_BACKEND_ONNX "Build ONNX backend" ON)
 option(RAC_BACKEND_WHISPERCPP "Build WhisperCPP backend" ON)
-option(RAC_BACKEND_EXECUTORCH "Build ExecuTorch backend (ASR/TTS)" OFF)
 
 # =============================================================================
 # C++ CONFIGURATION
@@ -295,10 +294,6 @@ if(RAC_BUILD_BACKENDS)
         add_subdirectory(src/backends/whispercpp)
     endif()
 
-    if(RAC_BACKEND_EXECUTORCH AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/backends/executorch/CMakeLists.txt")
-        message(STATUS "  - ExecuTorch backend")
-        add_subdirectory(src/backends/executorch)
-    endif()
 endif()
 
 # =============================================================================

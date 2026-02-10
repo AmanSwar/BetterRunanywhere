@@ -15,10 +15,10 @@ struct MemoryPoolConfig {
     // LLM KV cache size for llama.cpp -> Default= 400 MB
     size_t llm_kv_cache_size = 400 * 1024 * 1024;
 
-    // ASR/STT model buffer size for ExecuTorch (currently whisper models) -> Default= 100 MB
+    // ASR/STT model buffer size for ONNX (Sherpa-ONNX Whisper) -> Default= 100 MB
     size_t asr_buffer_size = 100 * 1024 * 1024;
 
-    // TTS model buffer size for ExecuTorch (currently piper models) -> Default= 50 MB
+    // TTS model buffer size for ONNX (Sherpa-ONNX Piper) -> Default= 50 MB
     size_t tts_buffer_size = 50 * 1024 * 1024;
 
     //extra space for temporary allocations -> Default= 50 MB

@@ -101,16 +101,11 @@ print_info() {
 # =============================================================================
 
 CHECK_ONLY=false
-WITH_EXECUTORCH=false
 
 while [[ "$1" == --* ]]; do
     case "$1" in
         --check)
             CHECK_ONLY=true
-            shift
-            ;;
-        --with-executorch)
-            WITH_EXECUTORCH=true
             shift
             ;;
         --help|-h)
@@ -215,12 +210,6 @@ BUILD_ONNX=OFF
 BUILD_LLAMACPP=OFF
 BUILD_WHISPERCPP=OFF
 BUILD_TFLITE=OFF
-BUILD_EXECUTORCH=OFF
-
-# Enable ExecuTorch if requested
-if [ "$WITH_EXECUTORCH" = true ]; then
-    BUILD_EXECUTORCH=ON
-fi
 
 case "$BACKENDS" in
     all)
@@ -382,7 +371,6 @@ for ABI in "${ABI_ARRAY[@]}"; do
         -DRAC_BACKEND_ONNX=${BUILD_ONNX} \
         -DRAC_BACKEND_LLAMACPP=${BUILD_LLAMACPP} \
         -DRAC_BACKEND_WHISPERCPP=${BUILD_WHISPERCPP} \
-        -DRAC_BACKEND_EXECUTORCH=${BUILD_EXECUTORCH} \
         -DRAC_BUILD_TESTS=OFF \
         -DRAC_BUILD_SHARED=ON \
         -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON \
