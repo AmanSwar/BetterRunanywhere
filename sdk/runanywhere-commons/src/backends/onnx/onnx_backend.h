@@ -26,7 +26,18 @@
 #include <sherpa-onnx/c-api/c-api.h>
 #endif
 
+// Forward declarations for memory pool integration
+namespace rac {
+namespace core {
+struct MemorySegment;
+}
+}
+
 namespace runanywhere {
+
+// Forward declaration for pooled allocator
+class OnnxPooledAllocator;
+
 
 // =============================================================================
 // INTERNAL TYPES
@@ -211,6 +222,42 @@ class ONNXBackendNew {
 
     void set_telemetry_callback(TelemetryCallback callback);
 
+    // =========================================================================
+    // Memory Pool Integration
+    // =========================================================================
+
+    /**
+     * @brief Set memory pool for pooled allocations
+     * @param asr_segment Memory segment for ASR operations
+     * @param tts_segment Memory segment for TTS operations
+     * 
+     * When set, STT and TTS inference will use these pre-allocated
+     * memory pools instead of runtime malloc/free calls.
+     */
+    void set_memory_segments(rac::core::MemorySegment* asr_segment,
+                            rac::core::MemorySegment* tts_segment);
+
+    /**
+     * @brief Reset memory pools for next inference
+     * Call between inference runs to reuse memory.
+     */
+    void reset_memory_pools();
+
+    /**
+     * @brief Check if memory pools are configured
+     */
+    bool has_memory_pools() const { return asr_allocator_ != nullptr; }
+
+    /**
+     * @brief Get the pooled allocator for STT (for advanced use)
+     */
+    OnnxPooledAllocator* get_asr_allocator() { return asr_allocator_.get(); }
+
+    /**
+     * @brief Get the pooled allocator for TTS (for advanced use)
+     */
+    OnnxPooledAllocator* get_tts_allocator() { return tts_allocator_.get(); }
+
     // Get capability implementations
     ONNXSTT* get_stt() { return stt_.get(); }
     ONNXTTS* get_tts() { return tts_.get(); }
@@ -231,8 +278,13 @@ class ONNXBackendNew {
     std::unique_ptr<ONNXTTS> tts_;
     std::unique_ptr<ONNXVAD> vad_;
 
+    // Memory pool allocators
+    std::unique_ptr<OnnxPooledAllocator> asr_allocator_;
+    std::unique_ptr<OnnxPooledAllocator> tts_allocator_;
+
     mutable std::mutex mutex_;
 };
+
 
 // =============================================================================
 // STT IMPLEMENTATION

@@ -1,4 +1,5 @@
 #include "llamacpp_backend.h"
+#include "llamacpp_pooled_buffer.h"
 
 #include "common.h"
 
@@ -8,6 +9,8 @@
 #include <string>
 
 #include "rac/core/rac_logger.h"
+#include "rac/core/unified_memory_manager.h"
+
 
 // Use the RAC logging system
 #define LOGI(...) RAC_LOG_INFO("LLM.LlamaCpp", __VA_ARGS__)
@@ -154,6 +157,28 @@ void LlamaCppBackend::create_text_generation() {
     text_gen_ = std::make_unique<LlamaCppTextGeneration>(this);
     LOGI("Created text generation component");
 }
+
+// =============================================================================
+// Memory Pool Integration
+// =============================================================================
+
+void LlamaCppBackend::set_memory_segment(rac::core::MemorySegment* llm_segment) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    if (llm_segment) {
+        pooled_buffer_ = std::make_unique<LlamaCppPooledBuffer>(*llm_segment);
+        LOGI("LLM memory pool configured: %zu MB", llm_segment->size / (1024 * 1024));
+    }
+}
+
+void LlamaCppBackend::reset_memory_pool() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    if (pooled_buffer_) {
+        pooled_buffer_->reset();
+    }
+}
+
 
 // =============================================================================
 // TEXT GENERATION IMPLEMENTATION

@@ -18,7 +18,18 @@
 
 #include <nlohmann/json.hpp>
 
+// Forward declarations for memory pool integration
+namespace rac {
+namespace core {
+struct MemorySegment;
+}
+}
+
 namespace runanywhere {
+
+// Forward declaration for pooled buffer
+class LlamaCppPooledBuffer;
+
 
 // =============================================================================
 // DEVICE TYPES (internal use only)
@@ -87,6 +98,35 @@ class LlamaCppBackend {
     // Get text generation capability
     LlamaCppTextGeneration* get_text_generation() { return text_gen_.get(); }
 
+    // =========================================================================
+    // Memory Pool Integration
+    // =========================================================================
+
+    /**
+     * @brief Set memory pool for LLM operations (primarily KV cache)
+     * @param llm_segment Memory segment for LLM (KV cache, scratch)
+     * 
+     * When set, llama.cpp will use this pre-allocated buffer
+     * instead of runtime malloc/free calls.
+     */
+    void set_memory_segment(rac::core::MemorySegment* llm_segment);
+
+    /**
+     * @brief Reset memory pool for next inference
+     * Call between inference runs to reuse KV cache memory.
+     */
+    void reset_memory_pool();
+
+    /**
+     * @brief Check if memory pool is configured
+     */
+    bool has_memory_pool() const { return pooled_buffer_ != nullptr; }
+
+    /**
+     * @brief Get the pooled buffer (for advanced use)
+     */
+    LlamaCppPooledBuffer* get_pooled_buffer() { return pooled_buffer_.get(); }
+
    private:
     void create_text_generation();
 
@@ -94,8 +134,13 @@ class LlamaCppBackend {
     nlohmann::json config_;
     int num_threads_ = 0;
     std::unique_ptr<LlamaCppTextGeneration> text_gen_;
+
+    // Memory pool buffer
+    std::unique_ptr<LlamaCppPooledBuffer> pooled_buffer_;
+
     mutable std::mutex mutex_;
 };
+
 
 // =============================================================================
 // TEXT GENERATION IMPLEMENTATION

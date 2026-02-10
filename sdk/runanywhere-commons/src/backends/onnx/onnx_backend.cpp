@@ -7,6 +7,7 @@
  */
 
 #include "onnx_backend.h"
+#include "onnx_pooled_allocator.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -14,6 +15,8 @@
 #include <cstring>
 
 #include "rac/core/rac_logger.h"
+#include "rac/core/unified_memory_manager.h"
+
 
 namespace runanywhere {
 
@@ -103,6 +106,39 @@ void ONNXBackendNew::create_capabilities() {
     vad_ = std::make_unique<ONNXVAD>(this);
 #endif
 }
+
+// =============================================================================
+// Memory Pool Integration
+// =============================================================================
+
+void ONNXBackendNew::set_memory_segments(rac::core::MemorySegment* asr_segment,
+                                         rac::core::MemorySegment* tts_segment) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    if (asr_segment) {
+        asr_allocator_ = std::make_unique<OnnxPooledAllocator>(*asr_segment);
+        RAC_LOG_INFO("ONNX", "ASR memory pool configured: %zu MB",
+                     asr_segment->size / (1024 * 1024));
+    }
+    
+    if (tts_segment) {
+        tts_allocator_ = std::make_unique<OnnxPooledAllocator>(*tts_segment);
+        RAC_LOG_INFO("ONNX", "TTS memory pool configured: %zu MB",
+                     tts_segment->size / (1024 * 1024));
+    }
+}
+
+void ONNXBackendNew::reset_memory_pools() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    if (asr_allocator_) {
+        asr_allocator_->reset();
+    }
+    if (tts_allocator_) {
+        tts_allocator_->reset();
+    }
+}
+
 
 // =============================================================================
 // ONNXSTT Implementation
